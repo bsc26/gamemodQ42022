@@ -1,0 +1,26 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "49bec5c6-b964-417a-851e-808886b57400": {
+      "ProjectGuid": "49bec5c6-b964-417a-851e-808886b57400",
+      "DisplayName": "idLib",
+      "ColorIndex": 0
+    },
+    "49bec5c6-b964-417a-851e-808886b57430": {
+      "ProjectGuid": "49bec5c6-b964-417a-851e-808886b57430",
+      "DisplayName": "Game",
+      "ColorIndex": 1
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "Miscellaneous Files",
+      "ColorIndex": -1
+    },
+    "f2ef9123-b7c3-4f2f-a351-747b595bb534": {
+      "ProjectGuid": "f2ef9123-b7c3-4f2f-a351-747b595bb534",
+      "DisplayName": "MPGame",
+      "ColorIndex": 2
+    }
+  },
+  "NextColorIndex": 3
+}

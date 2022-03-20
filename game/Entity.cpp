@@ -643,6 +643,25 @@ void idEntity::Spawn( void ) {
 
 	health = spawnArgs.GetInt( "health" );
 
+	AC = spawnArgs.GetInt("armorclass", "15");
+
+	attackRoll = 100;
+
+	exp = spawnArgs.GetInt("exp", "0");
+
+	level = spawnArgs.GetInt("level", "1");
+	if (level < 1)
+	{
+		level = 1;
+	}
+
+	ASI = spawnArgs.GetInt("ASI", "1");
+	ASIcount = 0;
+
+	nextLevel = spawnArgs.GetInt("nextLevel", "50");
+	levelInc = spawnArgs.GetInt("levelInc", "100");
+	CheckForLevelUp(exp);
+
 	InitDefaultPhysics( origin, axis );
 
 	SetOrigin( origin );
@@ -680,6 +699,8 @@ void idEntity::Spawn( void ) {
 	declManager->FindType( DECL_ENTITYDEF, "damage_crush", false, false );
 // RAVEN END
 }
+
+
 
 /*
 ================
@@ -993,6 +1014,20 @@ void idEntity::Think( void ) {
 	RunPhysics();
 	Present();
 }
+
+void idEntity::CheckForLevelUp(int expGained) {
+	exp += expGained;
+	while (exp >= nextLevel)
+	{
+		level += 1;
+		ASIcount += 1;
+
+		exp -= nextLevel;
+		nextLevel += levelInc;
+	}
+}
+
+
 
 /*
 ================
@@ -3647,6 +3682,20 @@ void idEntity::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &di
 	if ( !attacker ) {
 		attacker = gameLocal.world;
 	}
+
+	/*
+	if (attacker && attacker->IsType(idPlayer::GetClassType()))
+	{
+		if (attacker->attackRoll < AC)
+		{
+			gameLocal.Printf("Attack Missed! \n");
+			return;
+		}
+		else
+		{
+			gameLocal.Printf("Attack Hit! \n");
+		}
+	}*/
 
 	const idDict *damageDef = gameLocal.FindEntityDefDict( damageDefName, false );
 	if ( !damageDef ) {

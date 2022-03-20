@@ -155,7 +155,8 @@ enum {
 	PMOD_MELEE_DISTANCE,
 	PMOD_PROJECTILE_DEATHPUSH,
 	PMOD_FIRERATE,
-	PMOD_MAX
+	PMOD_MAX,
+	PMOD_MAGIC_DAMAGE
 };
 
 typedef enum {
@@ -208,6 +209,15 @@ public:
 	int						powerupEndTime[ POWERUP_MAX ];
 	int						weaponMods[ MAX_WEAPONS ];
 
+	int						str;
+	int						dex;
+	int						con;
+	int						inte;
+
+	int						exp;
+	int						level;
+
+
  	// multiplayer
  	int						ammoPredictTime;
 	int						ammoRegenStep[ MAX_WEAPONS ];
@@ -257,6 +267,9 @@ public:
 	bool					UseAmmo( int index, int amount );
 	int						HasAmmo( const char *weapon_classname );			// looks up the ammo information for the weapon class first
 
+	int						GetAttributeBonus(int score, const char *name);					//get's the actual bonus for the thing to use
+	//int						GetDexAttributeBonus(int score);
+
 	int						nextItemPickup;
 	int						nextItemNum;
 	int						onePickupTime;
@@ -291,6 +304,8 @@ public:
 	bool					godmode;
 	int						godmodeDamage;
 	bool					undying;
+
+	int						hasClass;
 
 	bool					spawnAnglesSet;		// on first usercmd, we must set deltaAngles
 	idAngles				spawnAngles;

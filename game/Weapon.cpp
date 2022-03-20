@@ -630,6 +630,7 @@ void rvWeapon::Spawn ( void ) {
 	}
 	spread		= (gameLocal.IsMultiplayer()&&spawnArgs.FindKey("spread_mp"))?spawnArgs.GetFloat ( "spread_mp" ):spawnArgs.GetFloat ( "spread" );
 	nextAttackTime = 0;
+	nextRegenTime = 0;
 
 	// Zoom
 	zoomFov = spawnArgs.GetInt( "zoomFov", "-1" );
@@ -658,6 +659,32 @@ void rvWeapon::Spawn ( void ) {
 	lowAmmo				= spawnArgs.GetInt( "lowAmmo" );
 	ammoType			= GetAmmoIndexForName( spawnArgs.GetString( "ammoType" ) );
 	maxAmmo				= owner->inventory.MaxAmmoForAmmoClass ( owner, GetAmmoNameForIndex ( ammoType ) );
+	ammoRequiredAlt = spawnArgs.GetInt("ammoRequiredAlt");
+	if (ammoRequiredAlt == 0)
+	{
+		ammoRequiredAlt = ammoRequired;
+	}
+
+	hasMana = spawnArgs.GetInt("hasMana", "0"); //0 for false, 1 for true
+
+	if (hasMana == 1)
+	{
+		maxAmmo += owner->inventory.GetAttributeBonus(owner->inventory.inte, "maxMana");
+	} 
+
+	//Mana
+	manaRegenRate = SEC2MS(spawnArgs.GetFloat( "manaRegenRate" ) );
+	manaRegenAmmount = SEC2MS(spawnArgs.GetFloat( "manaRegenAmmount" ) );
+	if (hasMana == 1)
+	{
+		manaRegenRate -= owner->inventory.GetAttributeBonus(owner->inventory.inte, "manaRegen");
+		if (manaRegenRate < 0.1)
+		{
+			manaRegenRate = 0.1;
+		}
+	}
+	//common->Printf("Regen is: " + char(manaRegenRate));
+
 	
 	if ( ( ammoType < 0 ) || ( ammoType >= MAX_AMMO ) ) {
 		gameLocal.Warning( "Unknown ammotype for class '%s'", this->GetClassname ( ) );
@@ -2490,6 +2517,41 @@ void rvWeapon::AddToClip ( int amount ) {
 	}
 }
 
+void rvWeapon::ManaRegen() {
+	
+	//common->Printf("regen");
+	
+	//int ammo{}; 
+
+	//owner->inventory.ammo[ammoType] = ammo;
+	
+
+	if (owner->inventory.ammo[ammoType] < maxAmmo)
+	{
+		owner->inventory.ammo[ammoType] += manaRegenAmmount;
+	}
+	if (owner->inventory.ammo[ammoType] >= maxAmmo)
+	{
+		owner->inventory.ammo[ammoType] = maxAmmo;
+	}
+	
+
+	//return;
+}
+
+int rvWeapon::AttackRoll(int attribute) {
+	int mod;
+	mod = attribute - 10;
+
+	int roll = rvRandom::irand(1, 20);
+
+	roll += mod;
+
+
+	return roll;
+
+}
+
 /***********************************************************************
 
 	Attack
@@ -2515,16 +2577,27 @@ void rvWeapon::Attack( bool altAttack, int num_attacks, float spread, float fuse
 		return;
 	}
 
+	// if should use use alt ammo requirement
+	int ammo;
+	if (altAttack && ammoRequiredAlt > 0)
+	{
+		ammo = ammoRequiredAlt;
+	}
+	else
+	{
+		ammo = ammoRequired;
+	}
+
 	// avoid all ammo considerations on an MP client
 	if ( !gameLocal.isClient ) {
 		// check if we're out of ammo or the clip is empty
-		int ammoAvail = owner->inventory.HasAmmo( ammoType, ammoRequired );
+		int ammoAvail = owner->inventory.HasAmmo( ammoType, ammo );
 		if ( !ammoAvail || ( ( clipSize != 0 ) && ( ammoClip <= 0 ) ) ) {
 			return;
 		}
 
-		owner->inventory.UseAmmo( ammoType, ammoRequired );
-		if ( clipSize && ammoRequired ) {
+		owner->inventory.UseAmmo( ammoType, ammo );
+		if ( clipSize && ammo ) {
  			clipPredictTime = gameLocal.time;	// mp client: we predict this. mark time so we're not confused by snapshots
 			ammoClip -= 1;
 		}
@@ -2592,7 +2665,25 @@ void rvWeapon::Attack( bool altAttack, int num_attacks, float spread, float fuse
 	// The attack is either a hitscan or a launched projectile, do that now.
 	if ( !gameLocal.isClient ) {
 		idDict& dict = altAttack ? attackAltDict : attackDict;
-		power *= owner->PowerUpModifier( PMOD_PROJECTILE_DAMAGE );
+		if (hasMana == 1) 
+		{
+			power *= owner->PowerUpModifier(PMOD_MAGIC_DAMAGE);
+			/*common->Printf("Magic Damage: ");
+			char temp[100];
+			sprintf(temp, "%f", power);
+			common->Printf((char*)temp);
+			common->Printf("Regen is: ");
+			char temp[100];
+			sprintf(temp, "%d", manaRegenRate);
+			common->Printf((char*)temp);*/
+		}
+		else {
+			power *= owner->PowerUpModifier(PMOD_PROJECTILE_DAMAGE);
+			/*common->Printf("Normal Damage: ");
+			char temp[100];
+			sprintf(temp, "%f", power);
+			common->Printf((char*)temp);*/
+		}
 		if ( altAttack ? wfl.attackAltHitscan : wfl.attackHitscan ) {
 			Hitscan( dict, muzzleOrigin, muzzleAxis, num_attacks, spread, power );
 		} else {

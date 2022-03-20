@@ -26,7 +26,7 @@
 // RAVEN END
 
 #ifdef _WIN32
-#include "TypeInfo.h"
+#include "TypeInfo"
 #else
 #include "NoGameTypeInfo.h"
 #endif
@@ -171,7 +171,7 @@ void Cmd_ListSpawnArgs_f( const idCmdArgs &args ) {
 
 	for ( i = 0; i < ent->spawnArgs.GetNumKeyVals(); i++ ) {
 		const idKeyValue *kv = ent->spawnArgs.GetKeyVal( i );
-		gameLocal.Printf( "\"%s\"  "S_COLOR_WHITE"\"%s\"\n", kv->GetKey().c_str(), kv->GetValue().c_str() );
+		gameLocal.Printf( "\"%s\"  " S_COLOR_WHITE "\"%s\"\n", kv->GetKey().c_str(), kv->GetValue().c_str() );
 	}
 }
 
@@ -3022,6 +3022,228 @@ void Cmd_ShuffleTeams_f( const idCmdArgs& args ) {
 	gameLocal.mpGame.ShuffleTeams();
 }
 
+void Cmd_GiveClass_f( const idCmdArgs &args) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	if (player->hasClass == 1)
+	{
+		common->Printf("Already have a class! \n");
+		return;
+	}
+
+	//common->Printf("command ran \n");
+	//common->Printf(args.Argv(1));
+	if (idStr::Icmp(args.Argv(1), "fighter") == 0)
+	{
+		common->Printf("You are now a Fighter! \n");
+		
+		player->inventory.str += 4;
+		player->inventory.con += 4;
+		player->inventory.inte -= 4;
+
+		player->inventory.maxarmor = 100 + player->inventory.GetAttributeBonus(player->inventory.str, "str");
+		player->inventory.maxHealth = 100 + player->inventory.GetAttributeBonus(player->inventory.con, "con");
+		player->inventory.armor = player->inventory.maxarmor;
+		player->health = player->inventory.maxHealth;
+
+		GiveStuffToPlayer(player, "weapon_gauntlet", NULL);
+
+		player->hasClass = 1;
+		return;
+	}
+	else if (idStr::Icmp(args.Argv(1), "wizard") == 0) {
+
+		common->Printf("You are now a Wizard! \n");
+		player->inventory.inte += 4;
+		player->inventory.dex += 2;
+		player->inventory.str -= 4;
+		player->inventory.maxarmor = 100 + player->inventory.GetAttributeBonus(player->inventory.str, "str");
+		player->inventory.armor = player->inventory.maxarmor;
+		player->health = player->inventory.maxHealth;
+
+		GiveStuffToPlayer(player, "weapon_blaster", NULL);
+
+		player->hasClass = 1;
+		return;
+	}
+	else if (idStr::Icmp(args.Argv(1), "ranger") == 0) {
+
+		common->Printf("You are now a Ranger! \n");
+		player->inventory.dex += 4;
+		player->inventory.con += 2;
+
+		player->inventory.maxHealth += player->inventory.GetAttributeBonus(player->inventory.con, "con");
+		player->health = player->inventory.maxHealth;
+		player->inventory.armor = player->inventory.maxarmor;
+		GiveStuffToPlayer(player, "weapon_gauntlet", NULL);
+		GiveStuffToPlayer(player, "weapon_machinegun", NULL);
+
+		player->hasClass = 1;
+		return;
+	}
+	else
+	{
+		common->Printf("Not a Valid Class \n");
+	}
+
+
+}
+
+void Cmd_ShowAttributes_f(const idCmdArgs& args) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	gameLocal.Printf("\n");
+	gameLocal.Printf("Str: %d \n", player->inventory.str);
+	gameLocal.Printf("Dex: %d \n", player->inventory.dex);
+	gameLocal.Printf("Con: %d \n", player->inventory.con);
+	gameLocal.Printf("Int: %d \n", player->inventory.inte);
+	gameLocal.Printf("You Have: %d Attribute Increases \n", player->ASIcount);
+
+}
+
+void Cmd_IncreaseAttributes_f(const idCmdArgs& args) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+	int increase = 0;
+	int count = 0;
+	int ASIcountBefore = player->ASIcount;
+	if (args.Argv(2) == "")
+	{
+		count = 1;
+	}
+	else
+	{
+		count = atoi(args.Argv(2));
+		if (count <= 0)
+		{
+			gameLocal.Printf("Invalid amount. \n");
+			return;
+		}
+	}
+	
+	
+	if (player->ASIcount >= player->ASI)
+	{
+		
+	}
+	else {
+		gameLocal.Printf("No Ability Score Increases availible.");
+		return;
+	}
+
+	
+	for (int i = 0; i < count; i++)
+	{
+		if (player->ASIcount >= player->ASI)
+		{
+			increase++;
+			player->ASIcount -= player->ASI;
+		}
+	}
+	
+	player->health = player->inventory.maxHealth;
+	player->inventory.armor = player->inventory.maxarmor;
+
+	if (idStr::Icmp(args.Argv(1), "str") == 0) {
+		player->inventory.str += increase;
+
+		player->inventory.maxarmor = 100 + player->inventory.GetAttributeBonus(player->inventory.str, "str");
+		player->inventory.armor = player->inventory.maxarmor;
+		return;
+	}
+	else if (idStr::Icmp(args.Argv(1), "dex") == 0) {
+		player->inventory.dex += increase;
+
+		
+		return;
+	}
+	else if (idStr::Icmp(args.Argv(1), "con") == 0) {
+		player->inventory.con += increase;
+
+		player->inventory.maxHealth = 100 + player->inventory.GetAttributeBonus(player->inventory.con, "con");
+		player->health = player->inventory.maxHealth;
+		return;
+	}
+	else if (idStr::Icmp(args.Argv(1), "int") == 0) {
+		int valueBefore = player->inventory.GetAttributeBonus(player->inventory.inte, "manaRegen");
+		player->inventory.inte += increase;
+
+		if (player->weapon->hasMana == 1)
+		{
+			player->weapon->maxAmmo = 100 + player->inventory.GetAttributeBonus(player->inventory.inte, "maxMana");
+			player->weapon->manaRegenRate -= (player->inventory.GetAttributeBonus(player->inventory.inte, "manaRegen") - valueBefore);
+		}
+
+		if (player->weapon->manaRegenRate < 0.1)
+		{
+			player->weapon->manaRegenRate = 0.1;
+		}
+
+		return;
+	}
+	else
+	{
+		gameLocal.Printf("Invalid attribute \n");
+		player->ASIcount = ASIcountBefore;
+		return;
+	}
+}
+
+void Cmd_CheatIncrease_f(const idCmdArgs& args) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+	int increase = 0;
+	if (args.Argv(2) == "")
+	{
+		increase = 1;
+	}
+	else
+	{
+		increase += atoi(args.Argv(2));
+	}
+
+	player->health = player->inventory.maxHealth;
+	player->inventory.armor = player->inventory.maxarmor;
+
+
+	if (idStr::Icmp(args.Argv(1), "str") == 0) {
+		player->inventory.str += increase;
+
+		player->inventory.maxarmor = 100 + player->inventory.GetAttributeBonus(player->inventory.str, "str");
+		player->inventory.armor = player->inventory.maxarmor;
+		return;
+	}
+	else if (idStr::Icmp(args.Argv(1), "dex") == 0) {
+		player->inventory.dex += increase;
+		return;
+	}
+	else if (idStr::Icmp(args.Argv(1), "con") == 0) {
+		player->inventory.con += increase;
+
+		player->inventory.maxHealth = 100 + player->inventory.GetAttributeBonus(player->inventory.con, "con");
+		player->health = player->inventory.maxHealth;
+		return;
+	}
+	else if (idStr::Icmp(args.Argv(1), "int") == 0) {
+		int valueBefore = player->inventory.GetAttributeBonus(player->inventory.inte, "manaRegen");
+
+		player->inventory.inte += increase;
+
+		if (player->weapon->hasMana == 1)
+		{
+			player->weapon->maxAmmo = 100 + player->inventory.GetAttributeBonus(player->inventory.inte, "maxMana");
+			player->weapon->manaRegenRate -= (player->inventory.GetAttributeBonus(player->inventory.inte, "manaRegen") - valueBefore);
+		}
+
+		if (player->weapon->manaRegenRate < 0.1)
+		{
+			player->weapon->manaRegenRate = 0.1;
+		}
+
+		return;
+	}
+	return;
+
+}
+
 #ifndef _FINAL
 void Cmd_ClientOverflowReliable_f( const idCmdArgs& args ) {
 	idBitMsg	outMsg;
@@ -3092,6 +3314,11 @@ void idGameLocal::InitConsoleCommands( void ) {
 	cmdSystem->AddCommand( "flashlight",			Cmd_Flashlight_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"toggle actor's flashlight", idGameLocal::ArgCompletion_AIName );
 	
 	cmdSystem->AddCommand( "shuffleTeams",			Cmd_ShuffleTeams_f,			CMD_FL_GAME,				"shuffle teams" );
+
+	cmdSystem->AddCommand( "class",					Cmd_GiveClass_f,			CMD_FL_GAME,				"give player a class");
+	cmdSystem->AddCommand( "attributes", 			Cmd_ShowAttributes_f,		CMD_FL_GAME,				"show the players current attribute scores");
+	cmdSystem->AddCommand("increase",				Cmd_IncreaseAttributes_f,	CMD_FL_GAME,				"Increases an attribute by X ammount if player has leveled up");
+	cmdSystem->AddCommand("cheatincrease",			Cmd_CheatIncrease_f,		CMD_FL_GAME|CMD_FL_CHEAT,	"Increase anattribute y X ammount");
 // RAVEN BEGIN
 // bdube: not using id effect system
 //	cmdSystem->AddCommand( "testFx",				Cmd_TestFx_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"tests an FX system", idCmdSystem::ArgCompletion_Decl<DECL_FX> );

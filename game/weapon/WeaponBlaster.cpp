@@ -153,6 +153,8 @@ void rvWeaponBlaster::Spawn ( void ) {
 	chargeTime   = SEC2MS ( spawnArgs.GetFloat ( "chargeTime" ) );
 	chargeDelay  = SEC2MS ( spawnArgs.GetFloat ( "chargeDelay" ) );
 
+	
+
 	fireHeldTime		= 0;
 	fireForced			= false;
 			
@@ -305,9 +307,16 @@ stateResult_t rvWeaponBlaster::State_Idle ( const stateParms_t& parms ) {
 		case IDLE_INIT:			
 			SetStatus ( WP_READY );
 			PlayCycle( ANIMCHANNEL_ALL, "idle", parms.blendFrames );
+			//ManaRegen();
 			return SRESULT_STAGE ( IDLE_WAIT );
 			
 		case IDLE_WAIT:
+			//common -> Printf("Idle");
+			if (gameLocal.time > nextRegenTime)
+			{
+				ManaRegen();
+				nextRegenTime = gameLocal.time + manaRegenRate;
+			}
 			if ( wsfl.lowerWeapon ) {
 				SetState ( "Lower", 4 );
 				return SRESULT_DONE;
@@ -319,6 +328,7 @@ stateResult_t rvWeaponBlaster::State_Idle ( const stateParms_t& parms ) {
 			if ( UpdateAttack ( ) ) {
 				return SRESULT_DONE;
 			}
+			
 			return SRESULT_WAIT;
 	}
 	return SRESULT_ERROR;
@@ -398,6 +408,7 @@ rvWeaponBlaster::State_Fire
 ================
 */
 stateResult_t rvWeaponBlaster::State_Fire ( const stateParms_t& parms ) {
+	float power = 0.0f;
 	enum {
 		FIRE_INIT,
 		FIRE_WAIT,
@@ -424,17 +435,28 @@ stateResult_t rvWeaponBlaster::State_Fire ( const stateParms_t& parms ) {
 				return SRESULT_DONE;
 			}
 
+			owner->attackRoll = AttackRoll(owner->inventory.inte);
+			gameLocal.Printf("Roll is: %d \n", owner->attackRoll);
 
-	
-			if ( gameLocal.time - fireHeldTime > chargeTime ) {	
-				Attack ( true, 1, spread, 0, 1.0f );
-				PlayEffect ( "fx_chargedflash", barrelJointView, false );
-				PlayAnim( ANIMCHANNEL_ALL, "chargedfire", parms.blendFrames );
-			} else {
-				Attack ( false, 1, spread, 0, 1.0f );
-				PlayEffect ( "fx_normalflash", barrelJointView, false );
-				PlayAnim( ANIMCHANNEL_ALL, "fire", parms.blendFrames );
+			
+			if (owner->attackRoll >= 13)
+			{
+				power = 1.0f;
 			}
+					
+			if (gameLocal.time - fireHeldTime > chargeTime) {
+				
+				Attack(true, 1, spread, 0, power);
+				PlayEffect("fx_chargedflash", barrelJointView, false);
+				PlayAnim(ANIMCHANNEL_ALL, "chargedfire", parms.blendFrames);
+			}
+			else {
+				
+				Attack(false, 1, 0, 0, power);
+				PlayEffect("fx_normalflash", barrelJointView, false);
+				PlayAnim(ANIMCHANNEL_ALL, "fire", parms.blendFrames);
+			}
+			
 			fireHeldTime = 0;
 			
 			return SRESULT_STAGE(FIRE_WAIT);

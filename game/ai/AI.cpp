@@ -1669,6 +1669,12 @@ void idAI::Killed( idEntity *inflictor, idEntity *attacker, int damage, const id
 		gameLocal.AlertAI( ( idActor * )attacker );
 	}
 
+	//If player attacks
+	if (attacker && attacker->IsType(idPlayer::GetClassType()))
+	{
+		attacker->CheckForLevelUp(50);
+	}
+
 	// activate targets
 	ActivateTargets( this );
 

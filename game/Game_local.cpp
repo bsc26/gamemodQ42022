@@ -7564,7 +7564,7 @@ idEntity* idGameLocal::HitScan(
 
 	// Apply player powerups
 	if ( owner && owner->IsType( idPlayer::GetClassType() ) ) {
-		damageScale *= static_cast<idPlayer*>(owner)->PowerUpModifier(PMOD_PROJECTILE_DAMAGE);
+	//	damageScale *= static_cast<idPlayer*>(owner)->PowerUpModifier(PMOD_PROJECTILE_DAMAGE);
 	}
 	
 	// Run reflections

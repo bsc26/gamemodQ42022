@@ -135,6 +135,15 @@ public:
 	idList< idEntityPtr<idEntity> >	targets;		// when this entity is activated these entities entity are activated
 
 	int						health;					// FIXME: do all objects really need health?
+	int						AC;
+	int						attackRoll;
+
+	int						exp;
+	int						level;
+	int						ASI;
+	int						ASIcount;
+	int						nextLevel;
+	int						levelInc;
 
 // RAVEN BEGIN
 // ddynerman: optional pre-prediction
@@ -214,6 +223,8 @@ public:
 	void					BecomeActive( int flags );
 	void					BecomeInactive( int flags );
 	void					UpdatePVSAreas( const idVec3 &pos );
+
+	void					CheckForLevelUp(int expGained);
 
 // RAVEN BEGIN
 // abahr:

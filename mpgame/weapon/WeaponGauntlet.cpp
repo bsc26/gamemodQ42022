@@ -489,14 +489,16 @@ stateResult_t rvWeaponGauntlet::State_Fire( const stateParms_t& parms ) {
 		case STAGE_LOOP:
 			PlayCycle( ANIMCHANNEL_ALL, "attack_loop", parms.blendFrames );
 			StartSound( "snd_spin_loop", SND_CHANNEL_WEAPON, 0, false, 0 );
-			return SRESULT_STAGE(STAGE_LOOP_WAIT);
+			Attack();
+			return SRESULT_STAGE( STAGE_END );
+			//return SRESULT_STAGE(STAGE_LOOP_WAIT);
 			
-		case STAGE_LOOP_WAIT:
+		/*case STAGE_LOOP_WAIT:
 			if ( !wsfl.attack || wsfl.lowerWeapon ) {
 				return SRESULT_STAGE( STAGE_END );
 			}
 			Attack();
-			return SRESULT_WAIT;
+			return SRESULT_WAIT; */
 		
 		case STAGE_END:
 			PlayAnim( ANIMCHANNEL_ALL, "attack_end", parms.blendFrames );

@@ -123,6 +123,11 @@ stateResult_t rvWeaponShotgun::State_Idle( const stateParms_t& parms ) {
 			return SRESULT_STAGE ( STAGE_WAIT );
 		
 		case STAGE_WAIT:			
+			if (gameLocal.time > nextRegenTime)
+			{
+				ManaRegen();
+				nextRegenTime = gameLocal.time + manaRegenRate;
+			}
 			if ( wsfl.lowerWeapon ) {
 				SetState( "Lower", 4 );
 				return SRESULT_DONE;

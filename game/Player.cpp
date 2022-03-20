@@ -340,6 +340,7 @@ void idInventory::RestoreInventory( idPlayer *owner, const idDict &dict ) {
 	armor			= dict.GetInt( "armor", "50" );
 	maxarmor		= dict.GetInt( "maxarmor", "100" );
 
+
 	// ammo
 	for( i = 0; i < MAX_AMMOTYPES; i++ ) {
 		name = rvWeapon::GetAmmoNameForIndex ( i );
@@ -347,6 +348,15 @@ void idInventory::RestoreInventory( idPlayer *owner, const idDict &dict ) {
 			ammo[ i ] = dict.GetInt( name );
 		}
 	}
+
+	//attributes
+	str = dict.GetInt("str", "10");
+	dex = dict.GetInt("dex", "10");
+	con = dict.GetInt("con", "10");
+	inte = dict.GetInt("inte", "10");
+
+	maxHealth += GetAttributeBonus(con, "con");
+	maxarmor += GetAttributeBonus(str, "str");
 
 	// items
 	num = dict.GetInt( "items" );
@@ -577,6 +587,14 @@ idInventory::MaxAmmoForAmmoClass
 ==============
 */
 int idInventory::MaxAmmoForAmmoClass( idPlayer *owner, const char *ammo_classname ) const {
+	
+	/*
+	int mana = 0;
+	if (owner->weapon->hasMana = 1)
+	{
+		mana += GetAttributeBonus(inte, "maxMana");
+	} */
+
 	return owner->spawnArgs.GetInt( va( "max_%s", ammo_classname ), "0" );
 }
 
@@ -1069,6 +1087,43 @@ bool idInventory::UseAmmo( int index, int amount ) {
 	}
 
 	return true;
+}
+
+int idInventory::GetAttributeBonus(int score, const char *name) {
+	if (name == "str" || name == "maxMana")
+	{
+		int newScore = score - 10;
+		int bonus = newScore * 10;
+		return bonus;
+	}
+	if (name == "con")
+	{
+		int newScore = score - 10;
+		int bonus;
+		if (newScore < 10)
+		{
+			bonus = newScore * 10;
+		}
+		else
+		{
+			bonus = newScore * 20;
+		}
+		return bonus;
+	}
+	if (name == "dexSpeed" || name == "strDamage" || name == "dexDamage" )
+	{
+		int bonus = score - 10;
+		return bonus;
+	}
+	if (name == "manaRegen")
+	{
+		int newScore = score - 10;
+		int bonus = newScore * SEC2MS(0.01f);
+		return bonus;
+	}
+
+	
+
 }
 
 /*
@@ -1808,6 +1863,8 @@ Prepare any resources used by the player.
 void idPlayer::Spawn( void ) {
 	idStr		temp;
 	idBounds	bounds;
+
+	hasClass = 0;
 
 	if ( entityNumber >= MAX_CLIENTS ) {
 		gameLocal.Error( "entityNum > MAX_CLIENTS for player.  Player may only be spawned with a client." );
@@ -3356,7 +3413,8 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 	assert( _hud );
 
 	inclip		= weapon->AmmoInClip();
-	ammoamount	= weapon->AmmoAvailable();
+	//ammoamount	= weapon->AmmoAvailable();
+	ammoamount = inventory.ammo[weapon->ammoType];
 
 	if ( ammoamount < 0 ) {
 		// show infinite ammo
@@ -3376,7 +3434,7 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 	} else {
 		_hud->SetStateFloat ( "player_ammopct", (float)ammoamount / (float)weapon->maxAmmo );
 		_hud->SetStateInt ( "player_totalammo", ammoamount );
-		_hud->SetStateInt ( "player_ammo", -1 );
+		_hud->SetStateInt ( "player_ammo", -1);
 	} 
 
 	_hud->SetStateBool( "player_ammo_empty", ( ammoamount == 0 ) );
@@ -3400,12 +3458,26 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 		_hud->HandleNamedEvent ( "updateHealth" );
 	}
 		
-	temp = _hud->State().GetInt ( "player_armor", "-1" );
+	temp = _hud->State().GetInt ( "player_armor", "-1" ); 
 	if ( temp != inventory.armor ) {
 		_hud->SetStateInt ( "player_armorDelta", temp == -1 ? 0 : (temp - inventory.armor) );
 		_hud->SetStateInt ( "player_armor", inventory.armor );
 		_hud->SetStateFloat	( "player_armorpct", idMath::ClampFloat ( 0.0f, 1.0f, (float)inventory.armor / (float)inventory.maxarmor ) );
 		_hud->HandleNamedEvent ( "updateArmor" );
+	}
+
+	temp = _hud->State().GetInt("player_level", "-1");
+	if (temp != level) {
+		_hud->SetStateInt("player_expDelta", temp == -1 ? 0 : (temp - level));
+		_hud->SetStateInt("player_level", level);
+		_hud->HandleNamedEvent("updateExp");
+	}
+	temp = _hud->State().GetInt("player_exp", "-1");
+	if (temp != exp) {
+	//	_hud->SetStateInt("player_expDelta", temp == -1 ? 0 : (temp - exp));
+		_hud->SetStateInt("player_exp", exp);
+		_hud->SetStateFloat("player_exppct", idMath::ClampFloat(0.0f, 1.0f, (float)exp / (float)nextLevel));
+		_hud->HandleNamedEvent("updateExp");
 	}
 	
 	// Boss bar
@@ -3994,7 +4066,7 @@ void idPlayer::FireWeapon( void ) {
 				pfl.attackHeld = false;
 				pfl.weaponFired = false;
 				StopFiring();
-				NextBestWeapon();
+				//NextBestWeapon();
 			}
 		} else {
 			StopFiring();
@@ -4363,6 +4435,43 @@ float idPlayer::PowerUpModifier( int type ) {
 			}
 		}
 	}
+
+	if (inventory.dex != 10)
+	{
+		switch (type) {
+			case PMOD_SPEED: {
+				mod *= 1.0f + (0.1f * float(inventory.GetAttributeBonus(inventory.dex, "dexSpeed")));
+				break;
+			}
+			case PMOD_PROJECTILE_DAMAGE: {
+				mod *= 1.0f + (0.1f * float(inventory.GetAttributeBonus(inventory.dex, "dexDamage")));
+				break;
+			}
+		}
+	}
+	/*if (inventory.dex != 10)
+	{
+		switch (type) {
+		case PMOD_PROJECTILE_DAMAGE: {
+			mod *= 1.0f + (0.1f * float(inventory.GetAttributeBonus(inventory.dex, "dexDamage")));
+			break;
+			}
+		}
+	} */
+
+	if (inventory.str != 10)
+	{
+		switch (type) {
+			case PMOD_MELEE_DAMAGE: {
+				mod *= 1.0f + (0.2f * float(inventory.GetAttributeBonus(inventory.str, "strDamage")));
+				break;
+			}
+		}
+	}
+
+
+
+
 
 	return mod;
 }
@@ -7210,6 +7319,8 @@ void idPlayer::UpdateFocus( void ) {
 
 				ui->SetStateString( "player_health", va("%i", health ) );
 				ui->SetStateString( "player_armor", va( "%i%%", inventory.armor ) );
+				ui->SetStateString("player_exp", va("%i%%", exp));
+				ui->SetStateString("player_level", va("%i", level));
 
 				kv = ent->spawnArgs.MatchPrefix( "gui_", NULL );
 				while ( kv ) {
@@ -9643,7 +9754,12 @@ void idPlayer::Think( void ) {
 		inBuyZone = false;
 
 	inBuyZonePrev = false;
+	
+
 }
+
+
+
 
 /*
 =================

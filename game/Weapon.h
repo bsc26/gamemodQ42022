@@ -208,11 +208,16 @@ public:
 	void				SetClip						( int amount );
 	int					TotalAmmoCount				( void ) const;
 
+	void				ManaRegen					(void);
+
+
 	// Attack
 	bool				PerformAttack				( idVec3& muzzleOrigin, idMat3& muzzleAxis, float dmgPower );
 	void				LaunchProjectiles			( idDict& dict, const idVec3& muzzleOrigin, const idMat3& muzzleAxis, int num_projectiles, float spread, float fuseOffset, float power );
 	void				Hitscan						( const idDict& dict, const idVec3& muzzleOrigin, const idMat3& muzzleAxis, int num_hitscans, float spread, float power );
 	void				AlertMonsters				( void );
+
+	int					AttackRoll					(int attribute);
 
 	// Mods
 	int					GetMods						( void ) const;
@@ -367,7 +372,14 @@ public:
 	int								clipSize;			// 0 means no reload
 	int								ammoClip;
 	int								lowAmmo;			// if ammo in clip hits this threshold, snd_
-	int								maxAmmo;		
+	int								maxAmmo;	
+	int								ammoRequiredAlt;
+
+	// magic ammo regen
+	int								hasMana;			//if weapon uses mana. 0 for false. 1 for true
+	int								manaRegenRate;		//how often to replenih mana
+	int								manaRegenAmmount;	//how much to replenish
+	int								nextRegenTime;		
 
  	// multiplayer
  	int								clipPredictTime;
